@@ -2689,7 +2689,7 @@ namespace UECda{
     // 32ビット着手表現と同一の系列で扱えるようにする
     // ジョーカー情報などを残すかは難しいが、現在はほとんどの情報を残したまま
     
-        struct Board{
+    struct Board{
         
         uint32_t bd;
         
@@ -2700,6 +2700,7 @@ namespace UECda{
         
         constexpr operator uint32_t()const noexcept{ return bd; }
         constexpr operator uint64_t()const noexcept{ return (uint64_t)bd; }
+        constexpr uint32_t data()const noexcept{ return bd; }
         
         void init()noexcept{ bd = 0U; }
         

@@ -134,7 +134,7 @@ namespace UECda{
                  //after change callback
                  [](const auto& field)->void{},
                  //play callback
-                 [buf, flags, plearningSpace](const auto& field, const Move chosenMove, const uint64_t time)->int{
+                 [buf, flags, plearningSpace, ptools](const auto& field, const Move chosenMove, const uint64_t time)->int{
                      
                      if(field.isEndGame()){ return -1; }
                      
@@ -183,7 +183,7 @@ namespace UECda{
                          }
                      }else{
                          
-                         if(!calcPlayPolicyScoreSlow<1, MODELING>(score, buf, NMoves, field, *plearner)){
+                         if(!calcPlayPolicyScoreSlow<1, MODELING>(score, buf, NMoves, field, *plearner, ptools)){
                              
                              if(flags.test(1)){ // feed feature value
                                  plearner->feedFeatureValue();

@@ -12,17 +12,13 @@
 #include "../structure/log/minLog.hpp"
 #include "../generator/changeGenerator.hpp"
 #include "../generator/moveGenerator.hpp"
+#include "../fuji/fujiStructure.hpp"
 #include "../fuji/montecarlo/playout.h"
 #include "../fuji/policy/changePolicy.hpp"
 #include "../fuji/policy/playPolicy.hpp"
 
 #include "../fuji/model/playerModel.hpp"
 #include "../fuji/model/playerBias.hpp"
-
-struct ThreadTools{
-    MoveInfo buf[8192];
-    XorShift64 dice;
-};
 
 std::string DIRECTORY_PARAMS_IN(""), DIRECTORY_PARAMS_OUT(""), DIRECTORY_LOGS("");
 
@@ -31,7 +27,7 @@ using namespace UECda::Fuji;
 
 XorShift64 dice((unsigned int)time(NULL));
 
-ThreadTools threadTools;
+ThreadTools threadTools(0);
 ChangePolicy<policy_value_t> baseChangePolicy;
 PlayPolicy<policy_value_t> basePlayPolicy;
 
@@ -80,7 +76,7 @@ int testPlayPolicyModeling(const logs_t& mLog){
                      if(moves <= 1){ return 0; }
                      
                      // ベース方策計算
-                     calcPlayPolicyScoreSlow<0>(score, play, moves, field, basePlayPolicy);
+                     calcPlayPolicyScoreSlow<0>(score, play, moves, field, basePlayPolicy, (ThreadTools*)nullptr);
                      
                      memcpy(score2, score, sizeof(double) * (moves + 1));
                      

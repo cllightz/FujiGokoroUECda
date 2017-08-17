@@ -47,6 +47,10 @@ namespace UECda{
             
             move_t buf[BUFFER_LENGTH];
             
+            // 方策の保存
+            std::unordered_set<PolicySaver, PolicySaver::Hash> savedPlayPolicy;
+            std::unordered_map<uint64_t, int> fieldHashKeyDistribution;
+            
             void init(int index){
                 memset(buf, 0, sizeof(buf));
                 threadIndex = index;
@@ -55,6 +59,10 @@ namespace UECda{
 #endif
             }
             void close(){}
+            ThreadTools(){}
+            ThreadTools(int index){
+                init(index);
+            }
         };
         
         struct SharedData{

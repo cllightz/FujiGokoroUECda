@@ -1168,7 +1168,7 @@ namespace UECda{
                  // after change callback
                  [](const auto& field)->void{},
                  // play callback
-                 [&pwFlag, &playLH, &timeLH, &orgCards, mv, tmpPlayFlag, by_time, &shared]
+                 [&pwFlag, &playLH, &timeLH, &orgCards, mv, tmpPlayFlag, by_time, &shared, ptools]
                  (const auto& field, const auto& chosenMove, uint32_t usedTime)->int{
                      const uint32_t tp = field.getTurnPlayer();
                      
@@ -1229,7 +1229,7 @@ namespace UECda{
                              }else{
                                  
                                  double score[N_MAX_MOVES + 1];
-                                 calcPlayPolicyScoreSlow<0>(score, mv, NMoves, field, shared.estimationPlayPolicy);
+                                 calcPlayPolicyScoreSlow<0>(score, mv, NMoves, field, shared.estimationPlayPolicy, /*(threadTools_t*)nullptr*/ptools);
                                  SoftmaxSelector selector(score, NMoves, Settings::simulationTemperaturePlay);
                                  if(Settings::simulationPlayModel){
                                      addPlayerPlayBias(score, mv, NMoves, field, *ppm, Settings::playerBiasCoef);

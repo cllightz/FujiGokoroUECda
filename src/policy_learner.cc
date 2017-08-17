@@ -9,15 +9,11 @@
 #include "structure/log/minLog.hpp"
 
 #include "fuji/fuji.h"
+#include "fuji/fujiStructure.hpp"
 #include "fuji/policy/changePolicy.hpp"
 #include "fuji/policy/playPolicy.hpp"
 
 #include "fuji/learning/policyGradient.hpp"
-
-struct ThreadTools{
-    MoveInfo buf[8192];
-    XorShift64 dice;
-};
 
 std::string DIRECTORY_PARAMS_IN(""), DIRECTORY_PARAMS_OUT(""), DIRECTORY_LOGS("");
 
@@ -122,7 +118,7 @@ int learn(std::vector<std::string> logFileNames, std::string outDirName, int mod
     ls.clear();
     for(int th = 0; th < threads; ++th){
         ls.emplace_back(LearningSpace(&changePolicy, &playPolicy));
-        threadTools.emplace_back(ThreadTools());
+        threadTools.emplace_back(ThreadTools(th));
     }
     
     // 0番スレッドの学習クラスをマスターとする

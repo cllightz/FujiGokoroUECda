@@ -265,17 +265,39 @@ for (int i = 0;;){os(base + i); ++i; if(i >= num)break; if(i % (x) == 0){ out <<
         // 後場のオーダーに対して計算する
         
     }*/
+    
+    struct PolicySaver{
+        uint64_t key;
+        Cards myCards;
+        Board bd;
+        policy_value_t score[N_MAX_MOVES];
+        
+        bool operator ==(const PolicySaver& saver)const{
+            return myCards == saver.myCards
+            && bd.data() == saver.bd.data();
+        }
+        bool operator !=(const PolicySaver& saver)const{
+            return !(*this == saver);
+        }
+        struct Hash{
+            typedef std::size_t result_type;
+            std::size_t operator()(const PolicySaver& key)const{
+                return result_type(key.key);
+            }
+        };
+    };
 
     template<
     int M = 1, // 0 通常系計算, 1 学習のため特徴ベクトル記録, 2 強化学習のためデータ保存
     int MODELING = 0, // 相手モデル化項追加
     int PRECALC = 0, // 計算高速化のための事前計算を行っている
-    class move_t, class field_t, class policy_t>
+    class move_t, class field_t, class policy_t, class tools_t>
     int calcPlayPolicyScoreSlow(double *const dst,
                                 move_t *const buf,
                                 const int NMoves,
                                 const field_t& field,
-                                policy_t& pol){ // learnerとして呼ばれうるため const なし
+                                policy_t& pol, // learnerとして呼ばれうるため const なし
+                                tools_t *const ptools){
     
         using namespace PlayPolicySpace;
         
@@ -284,16 +306,44 @@ for (int i = 0;;){os(base + i); ++i; if(i >= num)break; if(i % (x) == 0){ out <<
         // 恒常パラメータ
         const Board bd = field.bd;
         const int tp = field.getTurnPlayer();
+        const Cards myCards = field.getCards(tp);
+        
+        bool saveFlag = false;
+        PolicySaver saver;
+        if(!M && ptools != nullptr){
+            //tick();
+            // 再利用できる計算結果を探す(学習時はなし)
+            saver.key = field.getSubjectiveHashKey(tp);
+            saver.myCards = myCards;
+            saver.bd = bd;
+            std::unordered_set<PolicySaver, PolicySaver::Hash>::const_iterator psaved
+            = ptools->savedPlayPolicy.find(saver);
+            if(psaved != ptools->savedPlayPolicy.end()){ // 発見
+                //cerr << 1 << endl;
+                for(int m = 0; m < NMoves; ++m){
+                    // 結果をコピーして終了
+                    dst[m] = psaved->score[m];
+                }
+                ptools->fieldHashKeyDistribution[saver.key] += 1;
+                return 0;
+            }else if(ptools->fieldHashKeyDistribution.count(saver.key)){
+                // 複数回出てきた局面なので今回の計算結果を保存
+                saveFlag = true;
+            }
+            ptools->fieldHashKeyDistribution[saver.key] += 1;
+            //tock();
+        }
+        
         const int turnSeat = field.getPlayerSeat(tp);
         const int owner = field.getPMOwner();
         const int ownerSeat = field.getPlayerSeat(owner);
         const Hand& myHand = field.getHand(tp);
         const Hand& opsHand = field.getOpsHand(tp);
-        const Cards myCards = myHand.getCards();
         const int NMyCards = myHand.getQty();
         const uint32_t oq = myHand.qty;
         const Cards curPqr = myHand.pqr;
         const FieldAddInfo& fieldInfo = field.fieldInfo;
+        
         const int NParty = calcMinNMelds(buf + NMoves, myCards);
         
         // 元々の手札の最低、最高ランク
@@ -1093,97 +1143,19 @@ for (int i = 0;;){os(base + i); ++i; if(i >= num)break; if(i % (x) == 0){ out <<
             if(!M || dst != nullptr){
                 dst[m] = s;
             }
+            if(saveFlag){
+                saver.score[m] = s;
+            }
 		}
         pol.template finishCalculatingScore();
-        
+        if(saveFlag){
+            ptools->savedPlayPolicy.insert(saver);
+        }
         return 0;
 	}
 	
 #undef FooX
 #undef Foo
-    template<int M = 1, class field_t, class policy_t>
-    int calcPlayPolicyScoreSlow(
-                                double *const dst,
-                                const field_t& field,
-                                const policy_t& pol
-                                ){
-        return calcPlayPolicyScoreSlow<M>(dst, field.mv, field.NActiveMoves, field, pol);
-    }
-    template<int M = 1, class move_t, class field_t, class policy_t>
-    double calcPlayPolicyExpScoreSlow(double *const dst,
-                                   move_t *const buf,
-                                   const int NMoves,
-                                   const field_t& field,
-                                   const policy_t& pol){
-        // 指数をかけるところまで計算したsoftmax policy score
-        // 指数を掛けた後の合計値を返す
-        calcPlayPolicyScoreSlow<M>(dst, buf, NMoves, field, pol);
-        double sum = 0;
-        for(int m = 0; m < NMoves; ++m){
-            double es = exp(dst[m] / pol.temperature());
-            dst[m] = es;
-            sum += es;
-        }
-        return sum;
-    }
-    
-    template<int STOCK = 0, class move_t, class field_t, class policy_t, class dice_t>
-    int playWithPolicy(move_t *const buf, const int NMoves, const field_t& field, const policy_t& pol, dice_t *const pdice,
-                       double *const pentropy = nullptr){
-        double score[N_MAX_MOVES + 1];
-        double sum = calcPlayPolicyExpScoreSlow<STOCK ? 2 : 0>(score, buf, NMoves, field, pol);
-        //cerr << sum << endl;
-        double r = pdice->drand() * sum;
-        double entropy = 0;
-        if(sum > 0){
-            for(int m = 0; m < NMoves; ++m){
-                double prob = score[m] / sum;
-                if(prob > 0){
-                    entropy -= prob * log(prob) / log(2.0);
-                }
-            }
-        }
-        int m = 0;
-        for(; m < NMoves - 1; ++m){
-            r -= score[m];
-            if(r <= 0){
-                break;
-            }
-        }
-        if(pentropy != nullptr){
-            *pentropy = entropy;
-        }
-        return m;
-        // 和表現の場合
-        //double drand = pdice->drand() * score[NMoves];
-        //return sortedDAsearch(score, 0, NMoves, drand);
-    }
-    
-    template<int STOCK = 0, class move_t, class field_t, class policy_t, class dice_t>
-    int playWithBestPolicy(move_t *const buf, const int NMoves, const field_t& field, const policy_t& pol, dice_t *const pdice){
-        double score[N_MAX_MOVES + 1];
-        calcPlayPolicyScoreSlow<STOCK ? 2 : 0>(score, buf, NMoves, field, pol);
-        int bestIndex[N_MAX_MOVES];
-        bestIndex[0] = -1;
-        int NBestMoves = 0;
-        double bestScore = -DBL_MAX;
-        for(int m = 0; m < NMoves; ++m){
-            double s = score[m];
-            if(s > bestScore){
-                bestIndex[0] = m;
-                bestScore = s;
-                NBestMoves = 1;
-            }else if(s == bestScore){
-                bestIndex[NBestMoves] = m;
-                ++NBestMoves;
-            }
-        }
-        if(NBestMoves <= 1){
-            return bestIndex[0];
-        }else{
-            return bestIndex[pdice->rand() % NBestMoves];
-        }
-    }
 }
 
 #endif // UECDA_POLICY_PLAYPOLICY_HPP_

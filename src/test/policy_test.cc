@@ -9,6 +9,7 @@
 #include "../structure/log/minLog.hpp"
 #include "../generator/changeGenerator.hpp"
 #include "../generator/moveGenerator.hpp"
+#include "../fuji/fujiStructure.hpp"
 #include "../fuji/montecarlo/playout.h"
 #include "../fuji/policy/changePolicy.hpp"
 #include "../fuji/policy/playPolicy.hpp"
@@ -22,6 +23,7 @@ XorShift64 dice((unsigned int)time(NULL));
 
 ChangePolicy<policy_value_t> changePolicy;
 PlayPolicy<policy_value_t> playPolicy;
+ThreadTools threadTools(0);
 
 using namespace UECda::PlayPolicySpace;
 using namespace UECda::ChangePolicySpace;
@@ -130,7 +132,10 @@ int testPlayPolicyWithRecord(const logs_t& mLog){
          
          Clock clock;
          clock.start();
-         int index = playWithBestPolicy(play, moves, field, playPolicy, &dice);
+         double score[N_MAX_MOVES];
+         calcPlayPolicyScoreSlow<0>(score, play, moves, field, playPolicy, (ThreadTools*)nullptr);
+         MaxSelector selector(score, moves);
+         int index = selector.run_all(&dice);
          time[turnPlayer] += clock.stop();
          
          Move p = play[index].mv();
@@ -171,7 +176,7 @@ int testSelector(const logs_t& mLog){
          const int turnPlayer = field.getTurnPlayer();
          const int moves = genMove(play, field.getCards(turnPlayer), field.getBoard());
          
-         calcPlayPolicyScoreSlow<0>(score, play, moves, field, playPolicy);
+         calcPlayPolicyScoreSlow<0>(score, play, moves, field, playPolicy, (ThreadTools*)nullptr);
          
          int recordIndex = searchMove(play, moves, MoveInfo(pl));
          

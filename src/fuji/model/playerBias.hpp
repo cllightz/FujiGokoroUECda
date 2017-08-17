@@ -75,7 +75,7 @@ namespace UECda{
              // after change callback
              [](const auto& field)->void{},
              // play callback
-             [myPlayerNum, buf, pmodelSpace, &policy](const auto& field, const Move chosenMove, const uint64_t time)->int{
+             [myPlayerNum, buf, pmodelSpace, &policy, ptools](const auto& field, const Move chosenMove, const uint64_t time)->int{
                  
                  if(field.getTurnPlayer() == myPlayerNum){ return 0; }
                  if(field.isEndGame()){ return -1; }
@@ -108,7 +108,7 @@ namespace UECda{
                  
                  if(idx == -1){ // unfound
                  }else{
-                     if(!calcPlayPolicyScoreSlow<0>(score, buf, NMoves, field, policy)){
+                     if(!calcPlayPolicyScoreSlow<0>(score, buf, NMoves, field, policy, ptools)){
                          // naive softmax selectorによりベース方策の確率を計算
                          //SoftmaxSelector selector(score, NMoves, Settings::simulationTemperaturePlay);
                          

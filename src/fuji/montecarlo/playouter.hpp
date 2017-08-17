@@ -172,7 +172,7 @@ namespace UECda{
                             double score[N_MAX_MOVES + 1];
 
                             // 行動評価関数を計算
-                            calcPlayPolicyScoreSlow<M>(score, *pfield, pshared->basePlayPolicy);
+                            calcPlayPolicyScoreSlow<M>(score, pfield->mv, pfield->NActiveMoves, *pfield, pshared->basePlayPolicy, (threadTools_t*)nullptr/*ptools*/);
 
                             // 行動評価関数からの着手の選び方は複数パターン用意して実験できるようにする
                             int idx;
@@ -241,6 +241,7 @@ namespace UECda{
                                  threadTools_t *const ptools){
             DERR << pfield->toString();
             DERR << "turn : " << pfield->getTurnPlayer() << endl;
+            // 自分の初手は安全策として支配判定の結果を利用しない
             if(pfield->procSlowest(mv) == -1){
                 return 0;
             }

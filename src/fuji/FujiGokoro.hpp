@@ -157,7 +157,6 @@ namespace UECda{
 #endif
 			}
 			void initGame(){
-				
 				// 汎用変数の設定
 #ifndef POLICY_ONLY
 				// 報酬設定
@@ -347,7 +346,6 @@ namespace UECda{
                 return ret;
             }
 			Move playSub(){ // ここがプレー関数
-                
                 // 思考用の局面表現に変換
                 PlayouterField tfield;
                 
@@ -553,9 +551,11 @@ namespace UECda{
 						
 						if(rp_mc == 0){
 							// 最初の場合は世界プールを整理する
-							for(int th = 0; th < N_THREADS; ++th){
-								threadTools[th].gal.clear();
-							}
+                            for(int th = 0; th < N_THREADS; ++th){
+                                threadTools[th].gal.clear();
+                                threadTools[th].fieldHashKeyDistribution.clear();
+                                threadTools[th].savedPlayPolicy.clear();
+                            }
 						}
 						
 						MonteCarloPlayer mcp;
@@ -568,22 +568,20 @@ namespace UECda{
 #endif
                     // 方策関数による着手決定
                     if(playMove == MOVE_NONE){
+                        double score[N_MAX_MOVES + 256];
                         int idx = 0;
 #if defined(POLICY_ONLY) && defined(RL_POLICY)
-                        idx = playWithPolicy<1>(buf, NMoves, tfield, shared.basePlayPolicy, &dice); // stock mode
+                        calcPlayPolicyScoreSlow<1>(score, buf, NMoves, tfield, shared.basePlayPolicy, (ThreadTools*)nullptr);
+                        SoftmaxSelector selector(score, NMoves, Settings::simulationTemperaturePlay);
+                        idx = selector.run_all(&dice);
                         shared.playLearner.feedChosenActionIndexToLatestStock(idx, 0); // feed chosen action
 #else
+                        calcPlayPolicyScoreSlow<0>(score, buf, NMoves, tfield, shared.basePlayPolicy, (ThreadTools*)nullptr);
                         if(Settings::temperaturePlay <= 0){
-                            idx = playWithBestPolicy<0>(buf, NMoves, tfield, shared.basePlayPolicy, &dice);
+                            MaxSelector selector(score, NMoves);
+                            idx = selector.run_all(&dice);
                         }else{
-                            //double entropy = 0;
-                            
-                            //idx = playWithPolicy<0>(buf, NMoves, field, shared.basePlayPolicy, &dice, &entropy);
-                            //field.playEntropySum += entropy;
                             field.fuzzyPlayTimes += 1;
-                            
-                            double score[N_MAX_MOVES];
-                            calcPlayPolicyScoreSlow<0>(score, buf, NMoves, tfield, shared.basePlayPolicy);
                             BiasedSoftmaxSelector selector(score, NMoves,
                                                            Settings::simulationTemperaturePlay,
                                                            Settings::simulationAmplifyCoef,
@@ -625,6 +623,18 @@ namespace UECda{
                     cerr << shared.gameLog.toString(field.getGameNum()) << endl;
                     getchar();
                 }*/
+                
+                /*std::map<int, int> tset;
+                static uint64_t sumsum = 0;
+                static uint64_t sumsize = 0;
+                uint64_t sum = 0;
+                for(auto& a : fieldHashKeyDistribution){ tset[a.second] += 1; sum += a.second; }
+                cerr << "game " << field.getGameNum() << " turn " << field.getTurnNum() << " ";
+                //for(auto& a : tset)cerr << a.first << "(" << a.second << ") ";
+                sumsum += sum; sumsize += fieldHashKeyDistribution.size();
+                cerr << fieldHashKeyDistribution.size() << " - " << sum << "(" << sumsize / double(sumsum) << " ";
+                cerr << sumsize << " - " << sumsum << ")" << endl;*/
+                
 				return decided_move[0];
 			}
 			void afterMyPlay(){

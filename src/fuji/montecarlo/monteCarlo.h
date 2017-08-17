@@ -183,7 +183,7 @@ namespace UECda{
                 double score[256];
                 PlayouterField tfield;
                 setSubjectiveField(field, &tfield);
-                calcPlayPolicyScoreSlow<0>(score, moves.getMovePtr(), NChilds, tfield, shared.basePlayPolicy);
+                calcPlayPolicyScoreSlow<0>(score, moves.getMovePtr(), NChilds, tfield, shared.basePlayPolicy, (ThreadTools*)nullptr);
                 // 線形加算の次元でスコアを計算
                 for(int m = 0; m < NChilds; ++m){
                     child[m].policyScore = score[m]; // スコアを記録
