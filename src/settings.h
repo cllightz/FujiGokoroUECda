@@ -1,6 +1,6 @@
 /*
  settings.h
- Katsuki Ohto
+ Katsuki Ohto, cllightz
  */
 
 // 藤心基本設定
@@ -12,9 +12,9 @@
 #include <cfloat>
 
 // プロフィール
-#define MY_MC_NAME "blauweregen"
-#define MY_POL_NAME "kleinBlauw"
-#define MY_POL_RL_NAME "kleinBlauwRL"
+#define MY_MC_NAME "bmod"
+#define MY_POL_NAME "Sbmod"
+#define MY_POL_RL_NAME "SbmodRL"
 
 #define MY_VERSION "20170813"
 #define MY_COACH "KatsukiOhto"
