@@ -2,10 +2,10 @@ time=`date '+%s'`
 echo ${time}
 
 # 設定
-auto_dir=
-learn_record_dir=
-opponent_dir=
-current_dir=
+auto_dir=auto_dir/
+learn_record_dir=learn_record_dir/
+opponent_dir=../Blauweregen/
+current_dir=/mnt/c/work/bmod/
 
 cd ..
 
@@ -28,23 +28,23 @@ zip -r ${backup_dir}uecda.zip .
 ./out/release/policy_learner -o ${save_param_dir} -th 7 -t -i 1000 -ld ${learn_record_dir} 2>${save_dir}policy_learn_log.txt
 
 # 方策オンリーでの対戦実験
-./out/release/server -g 100000 1>${save_dir}policy_game.txt &
+./out/release/server -g 1000000 1>${save_dir}policy_game.txt &
 sleep 1.0
 ./out/release/policy_client -i ${save_param_dir} 2>${save_dir}policy_client_output.txt &
 
 cd ${opponent_dir}
 
 sleep 0.5
-./kou2 &
+./client &
 sleep 0.5
-./kou2 &
+./client &
 sleep 0.5
-./kou2 &
+./client &
 sleep 0.5
-./kou2 &
+./client &
 
 cd ${current_dir}
 
 # モンテカルロでの対戦実験
 
-cd scripts
+# cd scripts
