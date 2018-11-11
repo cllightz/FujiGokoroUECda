@@ -12,6 +12,10 @@
 *.DS_Store
 
 
+# .gitignore for saved learning files
+save*/
+
+
 # .gitignore for built binaries
 cards_test
 client
