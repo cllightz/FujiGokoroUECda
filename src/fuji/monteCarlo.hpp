@@ -85,9 +85,7 @@ namespace UECda{
                         tryingIndex = child[0].size() < child[1].size()
                         ? 0 : 1;
                 }else{
-                    // UCB-root アルゴリズムに変更
                     double bestScore = -DBL_MAX;
-                    const double allSize = proot->monteCarloAllScore.size();
                     for(int c = 0; c < candidates; ++c){
                         // Thompson Sampling (報酬はベータ分布に従うと仮定)
                         // バンディットcの推定報酬値をベータ分布に従って乱数で定める

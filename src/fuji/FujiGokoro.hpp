@@ -515,6 +515,21 @@ namespace UECda{
                 
                 // 方策とモンテカルロの評価
                 root.sort();
+
+                // DEBUG:
+#ifndef POLICY_ONLY
+                if(!fieldInfo.isMate() && !fieldInfo.isGiveUp()){
+                    auto& child = root.child;
+                    int candidates = root.candidates;
+                    if(candidates > 2){
+                        cout << "DEBUG TS: " << candidates << " candidates, " << root.allSimulations << " simulations." << endl;
+                        for(int c = 0; c < candidates; ++c){
+                            cout << c << ":\t" << child[c].mean() << '\t' << child[c].monteCarloScore.a << '\t' << child[c].monteCarloScore.b << '\t' << child[c].policyScore << '\t' << child[c].policyProb << /*'\t' << child[c].toString() <<*/ endl;
+                        }
+                        cout << endl;
+                    }
+                }
+#endif
                 
                 // 以下必勝を判定したときのみ
                 if(fieldInfo.isMate()){
