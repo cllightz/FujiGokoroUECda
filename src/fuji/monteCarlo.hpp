@@ -5,9 +5,13 @@
 
 #pragma once
 
+#include <vector>
+
 #include "fuji.h"
 #include "dealer.hpp"
 #include "playouter.hpp"
+
+using namespace std;
 
 // マルチスレッディングのときはスレッド、
 // シングルの時は関数として呼ぶ
@@ -65,6 +69,10 @@ namespace UECda{
                 pf.attractedPlayers.set(proot->rivalPlayerNum);
             }
             
+            // 枝刈り用
+            vector<bool> pruned(candidates, false);
+            int prunedCandidates = 0;
+
             uint64_t poTime = 0ULL; // プレイアウトと雑多な処理にかかった時間
             uint64_t estTime = 0ULL; // 局面推定にかかった時間
             
@@ -85,14 +93,58 @@ namespace UECda{
                         tryingIndex = child[0].size() < child[1].size()
                         ? 0 : 1;
                 }else{
+                    // 枝刈り処理
+                    constexpr int HYPER_PARAM_PRUNE_SIZE_THRE = 100;
+                    constexpr int HYPER_PARAM_PRUNE_CAND_MIN = 5;
+                    constexpr int HYPER_PARAM_PRUNE_SIMS_THRE = 10;
+                    constexpr double HYPER_PARAM_PRUNE_MEAN_THRE = 0.1;
+                    const double allSize = proot->monteCarloAllScore.size();
+                    if(allSize >= HYPER_PARAM_PRUNE_SIZE_THRE && candidates - prunedCandidates > HYPER_PARAM_PRUNE_CAND_MIN){
+                        // スコアが最低値の候補を検索
+                        double worstScore = DBL_MAX;
+                        int worstIndex = -1;
+                        for(int c = 0; c < candidates; ++c){
+                            double tmpMean = child[c].mean();
+                            if(!pruned[c]){
+                                // printf("DEBUG PRUNE: !pruned[c]\n");
+                                if(child[c].simulations >= HYPER_PARAM_PRUNE_SIMS_THRE){
+                                    // printf("DEBUG PRUNE: %d >= %d\n", child[c].simulations, HYPER_PARAM_PRUNE_SIMS_THRE);
+                                    // printf("DEBUG PRUNE: %f\n", tmpMean);
+                                    if(tmpMean < HYPER_PARAM_PRUNE_MEAN_THRE){
+                                        // printf("DEBUG PRUNE: %f < %f\n", tmpMean, HYPER_PARAM_PRUNE_MEAN_THRE);
+                                        if(tmpMean < worstScore){
+                                            // printf("DEBUG PRUNE: %f < %f\n", tmpMean, worstScore);
+                                            worstScore = tmpMean;
+                                            worstIndex = c;
+                                        }
+                                    }
+                                }
+                            }
+                            // if(!pruned[c] && child[c].simulations >= HYPER_PARAM_PRUNE_SIMS_THRE && tmpMean < HYPER_PARAM_PRUNE_MEAN_THRE && tmpMean <>> worstScore){
+                            //     worstScore = tmpMean;
+                            //     worstIndex = c;
+                            // }
+                        }
+
+                        // 枝刈りが発生
+                        if(worstIndex >= 0){
+                            cout << "DEBUG PRUNE!: " << child[worstIndex].mean() << '\t' << child[worstIndex].simulations << endl;
+                            pruned[worstIndex] = true;
+                            prunedCandidates++;
+                        }
+                    }
+
+                    // 探索を進める候補を選ぶ
                     double bestScore = -DBL_MAX;
                     for(int c = 0; c < candidates; ++c){
-                        // Thompson Sampling (報酬はベータ分布に従うと仮定)
-                        // バンディットcの推定報酬値をベータ分布に従って乱数で定める
-                        double tmpScore = child[c].monteCarloScore.rand(&dice);
-                        if(tmpScore > bestScore){
-                            bestScore = tmpScore;
-                            tryingIndex = c;
+                        if(!pruned[c]){
+                            // Thompson Sampling (報酬はベータ分布に従うと仮定)
+                            // バンディットcの推定報酬値をベータ分布に従って乱数で定める
+                            double tmpScore = child[c].monteCarloScore.rand(&dice);
+                            if(tmpScore > bestScore){
+                                bestScore = tmpScore;
+                                tryingIndex = c;
+                            }
                         }
                     }
                 }
