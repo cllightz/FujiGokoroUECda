@@ -96,8 +96,8 @@ namespace UECda{
                     // 枝刈り処理
                     constexpr int HYPER_PARAM_PRUNE_SIZE_THRE = 100;
                     constexpr int HYPER_PARAM_PRUNE_CAND_MIN = 5;
-                    constexpr int HYPER_PARAM_PRUNE_SIMS_THRE = 10;
-                    constexpr double HYPER_PARAM_PRUNE_MEAN_THRE = 0.1;
+                    constexpr int HYPER_PARAM_PRUNE_SIMS_THRE = 50;
+                    constexpr double HYPER_PARAM_PRUNE_MEAN_THRE = 0.05;
                     const double allSize = proot->monteCarloAllScore.size();
                     if(allSize >= HYPER_PARAM_PRUNE_SIZE_THRE && candidates - prunedCandidates > HYPER_PARAM_PRUNE_CAND_MIN){
                         // スコアが最低値の候補を検索
