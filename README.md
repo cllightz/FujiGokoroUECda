@@ -1,58 +1,14 @@
-This program was dedicated to MK, a gentle wind to me.
+# Blauweregenをベースにしたコンピュータ大貧民プログラム
 
-# コンピュータ大貧民プログラム FujiGokoro (藤心)
+UECコンピュータ大貧民大会（UECda）[1] 無差別級参加を想定した大貧民プログラム bmod（仮称）です。
+@YuriCat 氏が開発している YuriCat/FujiGokoroUECda [2] をベースにしています。
+Blauweregen が GPL-3.0 なので、bmod も GPL-3.0 です。
+YuriCat/FujiGokoroUECda の README.md は README_FujiGokoro.md にあります。
 
-UECコンピュータ大貧民大会（UECda）ルール・プロトコルに準拠した大富豪（大貧民）の思考プログラムです。
+[1]:電気通信大学, "UECコンピュータ大貧民大会", http://www.tnlab.inf.uec.ac.jp/daihinmin (参照2019-08-18)
 
-Daifugo Program for UEC Computer Daihinmin Contest (UECda) 
+[2]: YuriCat, "Daifugo Program for UEC Computer Daihinmin Contest (UECda)", https://github.com/YuriCat/FujiGokoroUECda/tree/record_base2 (参照2019-08-18)
 
-UECda2014, 2015, 2016, 2017 無差別級で優勝しています。
+# 現時点での YuriCat/FujiGokoroUECda との差異
 
-2016/5/19深夜放送の日本テレビ系「変ラボ」にてタレントの手越祐也さんと対決させていただきました。
-
-## 使用方法
-
-git clone https://github.com/YuriCat/FujiGokoroUECda  
-cd FujiGokoroUECda
-
-（この際、パラメータファイルがGit-LFS経由でparam/下にダウンロードされたことをご確認ください）
-
-make -j4
-
-でビルドし、
-
-./out/server -g 100 &
-
-./out/client &  
-./out/client &  
-./out/client &  
-./out/client &  
-./out/client &  
-
-のように5体の自己対戦を行うことができます。
-
-./out/server -g 100 -bc -l tmp.dat
-
-としてサーバーを起動すると試合内容をコンソールで表示し、tmp.datに棋譜を保存することができます。
-
-## 注意
-
-過去に大会出場したバージョンは
-
-http://www.tnlab.inf.uec.ac.jp/daihinmin/2017/downloads.html
-
-からダウンロードできます。
-
-こちらは開発版なので、弱かったり大会の時間制限を満たしていないことがあります。
-
-## ルール等 公式のドキュメント
-
-http://www.tnlab.inf.uec.ac.jp/daihinmin/2017/document.html
-
-## 大会での利用について
-
-コンピュータ大貧民大会では基本的に公開されている過去の出場プログラムを自由に改変して出場可能のはずですが、
-
-特に私の製作プログラムについては、こちらの開発版コードの利用しての出場も許可します。
-
-（出場申し込みの際に、コード利用の由を運営方に伝えたほうがよいかとは思います）
+- モンテカルロ木探索における提出手選択時のバンディットアルゴリズムを、UCB-rootからThompson Sampling（報酬値はベータ分布に従うと仮定）に変更

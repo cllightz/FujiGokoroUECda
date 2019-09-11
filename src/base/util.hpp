@@ -394,9 +394,153 @@ static double log_beta(double x, double y) {
     return lgamma(x) + lgamma(y) - lgamma(x + y);
 }
 
+struct ExponentialDistribution{
+    double lambda;
+    
+    double rand(double urand)const{
+        return -std::log(urand) / lambda;
+    }
+    
+    template<class dice_t>
+    double rand(dice_t *const pdice)const{
+        return rand(pdice->random());
+    }
+    
+    double relative_dens(double x)const noexcept{
+        return exp(-lambda * x);
+    }
+    double dens(double x)const noexcept{
+        return lambda * relative_dens(x);
+    }
+    double dist(double x)const noexcept{
+        return 1 - exp(-lambda * x);
+    }
+    double mean()const{ return 1 / lambda; }
+    double med()const{ return log((double)2) / lambda; }
+    double var()const{ return 1 / (lambda * lambda); }
+    double std()const{ return 1 / lambda; }
+    double ent()const{ return 1 - log(lambda); }
+    
+    static constexpr double mod()noexcept{ return 0; }
+    static constexpr double skew()noexcept{ return 2; }
+    static constexpr double kur()noexcept{ return 6; }
+    
+    ExponentialDistribution& set(double l)noexcept{
+        lambda = l;
+        return *this;
+    }
+    
+    std::string toString()const{
+        std::ostringstream oss;
+        oss << "Exp(" << lambda << ")";
+        return oss.str();
+    }
+    
+    constexpr ExponentialDistribution():
+    lambda(){}
+    explicit constexpr ExponentialDistribution(double l):
+    lambda(l){}
+};
+
+// std::ostream& operator<<(std::ostream& out, const ExponentialDistribution& e){
+//     out << e.toString();
+//     return out;
+// }
+
+struct GammaDistribution{
+    double k;
+    double theta;
+    
+    template<class dice_t>
+    double rand(dice_t *const pdice)const{
+        double x, y, z;
+        double u, v, w, b, c, e;
+        if(k < 1){
+            ExponentialDistribution ex(1);
+            e = ex.rand(pdice);
+            do{
+                x = pow(pdice->random(), 1 / k);
+                y = pow(pdice->random(), 1 / (1 - k));
+            }while(x + y > 1);
+            return (e * x / (x + y)) * theta;
+        }else{
+            b = k - 1;
+            c = 3 * k - 0.75;
+            while(true){
+                u = pdice->random();
+                v = pdice->random();
+                w = u * (1 - u);
+                y = sqrt(c / w) * (u - 0.5);
+                x = b + y;
+                if(x >= 0){
+                    z = 64 * w * w * w * v * v;
+                    if(z <= 1 - (2 * y * y) / x){
+                        return x * theta;
+                    }else{
+                        if(log(z) < 2 * (b * log(x / b) - y)){
+                            return x * theta;
+                        }
+                    }
+                }
+            }
+            return x * theta;
+        }
+    }
+    
+    GammaDistribution& set(double ak, double atheta = 1)noexcept{
+        k = ak;
+        theta = atheta;
+        return *this;
+    }
+    
+    double ralative_dens(double x)const{
+        return pow(x, k - 1) * exp(-x / theta);
+    }
+    double dens(double x)const{
+        return ralative_dens(x) / tgamma(k) / pow(theta, k);
+    }
+    constexpr double mean()const noexcept{
+        return k * theta;
+    }
+    constexpr double mod()const noexcept{
+        return (k - 1) * theta;
+    }
+    constexpr double var()const noexcept{
+        return k * theta * theta;
+    }
+    double std()const noexcept{
+        return sqrt(k) * theta;
+    }
+    double med()const;
+    
+    std::string toString()const{
+        std::ostringstream oss;
+        oss << "G(" << k << ", " << theta << ")";
+        return oss.str();
+    }
+    
+    constexpr GammaDistribution():
+    k(), theta(){}
+    explicit constexpr GammaDistribution(double ak):
+    k(ak), theta(1){}
+    explicit constexpr GammaDistribution(double ak, double atheta):
+    k(ak), theta(atheta){}
+};
+
+// std::ostream& operator<<(std::ostream& out, const GammaDistribution& g){
+//     out << g.toString();
+//     return out;
+// }
+
 struct BetaDistribution {
     double a, b;
 
+    template<class dice_t>
+    double rand(dice_t *const pdice)const{
+        double r1 = GammaDistribution(a).rand(pdice);
+        double r2 = GammaDistribution(b).rand(pdice);
+        return r1 / (r1 + r2);
+    }
     constexpr double size() const { return a + b; }
     constexpr double mean() const { return a / (a + b); }
     constexpr double med() const {
@@ -473,7 +617,7 @@ inline BetaDistribution operator-(const BetaDistribution& lhs, const BetaDistrib
 inline BetaDistribution operator*(const BetaDistribution& lhs, const double m) {
     return BetaDistribution(lhs.a * m, lhs.b * m);
 }
-extern std::ostream& operator<<(std::ostream& out, const BetaDistribution& b);
+// extern std::ostream& operator<<(std::ostream& out, const BetaDistribution& b);
 
 template <typename T, size_t B, size_t N>
 class MiniBitArray {

@@ -11,7 +11,7 @@ namespace Settings {
     const double valuePerSec = valuePerClock * 3191 * pow(10.0, 6); 
 }
 
-int selectBanditAction(const RootInfo& root, Dice& dice) {
+int selectBanditAction(const RootInfo& root, Dice& dice, std::vector<bool>& pruned, int *prunedCandidates) {
     // バンディット手法により次に試す行動を選ぶ
     int actions = root.candidates;
     const auto& a = root.child;
@@ -20,22 +20,59 @@ int selectBanditAction(const RootInfo& root, Dice& dice) {
         if (a[0].size() == a[1].size()) return dice() % 2;
         else return a[0].size() < a[1].size() ? 0 : 1;
     } else {
-        // UCB-root アルゴリズム
+        // 枝刈り処理
+        constexpr int HYPER_PARAM_PRUNE_SIZE_THRE = 100;
+        constexpr int HYPER_PARAM_PRUNE_CAND_MIN = 5;
+        constexpr int HYPER_PARAM_PRUNE_SIMS_THRE = 50;
+        constexpr double HYPER_PARAM_PRUNE_MEAN_THRE = 0.05;
         int index = 0;
-        double bestScore = -DBL_MAX;
-        double sqAllSize = sqrt(root.monteCarloAllScore.size());
-        for (int i = 0; i < actions; i++) {
-            double score;
-            if (a[i].simulations < 4) {
-                // 最低プレイアウト数をこなしていないものは、大きな値にする
-                // ただし最低回数のもののうちどれかがランダムに選ばれるようにする
-                score = (double)((1U << 16) - (a[i].simulations << 8) + (dice() % (1U << 6)));
-            } else {
-                score = a[i].mean() + 0.7 * sqrt(sqAllSize / a[i].size()); // ucbr値
+        double allSize = root.monteCarloAllScore.size();
+        if(allSize >= HYPER_PARAM_PRUNE_SIZE_THRE && actions - *prunedCandidates > HYPER_PARAM_PRUNE_CAND_MIN){
+            // スコアが最低値の候補を検索
+            double worstScore = DBL_MAX;
+            int worstIndex = -1;
+            for(int c = 0; c < actions; ++c){
+                double tmpMean = a[c].mean();
+                if(!pruned[c]){
+                    // printf("DEBUG PRUNE: !pruned[c]\n");
+                    if(a[c].simulations >= HYPER_PARAM_PRUNE_SIMS_THRE){
+                        // printf("DEBUG PRUNE: %d >= %d\n", a[c].simulations, HYPER_PARAM_PRUNE_SIMS_THRE);
+                        // printf("DEBUG PRUNE: %f\n", tmpMean);
+                        if(tmpMean < HYPER_PARAM_PRUNE_MEAN_THRE){
+                            // printf("DEBUG PRUNE: %f < %f\n", tmpMean, HYPER_PARAM_PRUNE_MEAN_THRE);
+                            if(tmpMean < worstScore){
+                                // printf("DEBUG PRUNE: %f < %f\n", tmpMean, worstScore);
+                                worstScore = tmpMean;
+                                worstIndex = c;
+                            }
+                        }
+                    }
+                }
+                // if(!pruned[c] && a[c].simulations >= HYPER_PARAM_PRUNE_SIMS_THRE && tmpMean < HYPER_PARAM_PRUNE_MEAN_THRE && tmpMean <>> worstScore){
+                //     worstScore = tmpMean;
+                //     worstIndex = c;
+                // }
             }
-            if (score > bestScore) {
-                bestScore = score;
-                index = i;
+
+            // 枝刈りが発生
+            if(worstIndex >= 0){
+                cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << endl;
+                pruned[worstIndex] = true;
+                prunedCandidates++;
+            }
+        }
+
+        // 探索を進める候補を選ぶ
+        double bestScore = -DBL_MAX;
+        for(int c = 0; c < actions; ++c){
+            if(!pruned[c]){
+                // Thompson Sampling (報酬はベータ分布に従うと仮定)
+                // バンディットcの推定報酬値をベータ分布に従って乱数で定める
+                double tmpScore = a[c].monteCarloScore.rand(&dice);
+                if(tmpScore > bestScore){
+                    bestScore = tmpScore;
+                    index = c;
+                }
             }
         }
         return index;
@@ -100,6 +137,10 @@ void MonteCarloThread(const int threadId, const int numThreads,
         pf.attractedPlayers.set(proot->rivalPlayerNum);
     }
 
+    // 枝刈り用
+    std::vector<bool> pruned(proot->candidates, false);
+    int prunedCandidates = 0;
+
     uint64_t simuTime = 0ULL; // プレイアウトと雑多な処理にかかった時間
     uint64_t estTime = 0ULL; // 局面推定にかかった時間
 
@@ -109,7 +150,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
     while (!proot->exitFlag) { // 最大で最高回数までプレイアウトを繰り返す
 
         int world = 0;
-        int action = selectBanditAction(*proot, dice);          
+        int action = selectBanditAction(*proot, dice, pruned, &prunedCandidates);          
 
         if (numSimulations[action] < numWorlds) {
             // まだ全ての世界でこの着手を検討していない
