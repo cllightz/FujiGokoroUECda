@@ -616,6 +616,4 @@ int get_seat(int sekijun[N_PLAYERS], int now_player) {
     return i;
 }
 
-
 #endif 
-

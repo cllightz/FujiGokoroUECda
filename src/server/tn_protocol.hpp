@@ -66,4 +66,3 @@ int tn_card_read(int client_sockfd, int read_card[8][15], int protocol_version) 
 }
 
 #endif 
-
