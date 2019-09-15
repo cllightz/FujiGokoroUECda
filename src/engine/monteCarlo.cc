@@ -246,7 +246,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
     {
         std::cout << pf.turnCount() << ",," << std::endl;
         for (auto i = 0; i < proot->candidates; i++) {
-            std::cout << i << ',' << proot->child[i].mean() << ',' << std::sqrt(proot->child[i].mean_var) << std::endl;
+            std::cout << i << ',' << proot->child[i].mean() << ',' << std::sqrt(proot->child[i].mean_var()) << std::endl;
         }
     }
 }
