@@ -12,7 +12,7 @@ namespace Settings {
 }
 
 // バンディット手法により次に試す行動を選ぶ
-inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MAX_MOVES>& pruned, int *prunedCandidates) {
+inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MAX_MOVES>& pruned, int& prunedCandidates) {
     int actions = root.candidates;
     const auto& a = root.child;
     if (actions == 2) {
@@ -27,7 +27,7 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
         constexpr double HYPER_PARAM_PRUNE_MEAN_THRE = 0.05;
         int index = 0;
         double allSize = root.monteCarloAllScore.size();
-        if(allSize >= HYPER_PARAM_PRUNE_SIZE_THRE && actions - *prunedCandidates > HYPER_PARAM_PRUNE_CAND_MIN){
+        if(allSize >= HYPER_PARAM_PRUNE_SIZE_THRE && actions - prunedCandidates > HYPER_PARAM_PRUNE_CAND_MIN){
             // スコアが最低値の候補を検索
             double worstScore = DBL_MAX;
             int worstIndex = -1;
@@ -72,10 +72,13 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
 
 // Regretによる打ち切り判定
 inline bool finishCheck(const RootInfo& root, double simuTime, Dice& dice) {
-    const int candidates = root.candidates; // 候補数
+    // 腕の数
+    const int candidates = root.candidates;
+
     const auto& child = root.child;
     const double rewardScale = root.rewardGap;
-    const double regretThreshold = 1600.0 * double(2 * simuTime * Settings::valuePerSec) / rewardScale;
+    constexpr int tryCount = 1600;
+    const double regretThreshold = tryCount * double(2 * simuTime * Settings::valuePerSec) / rewardScale;
 
     struct Dist {
         double mean; // 平均
@@ -83,30 +86,52 @@ inline bool finishCheck(const RootInfo& root, double simuTime, Dice& dice) {
         double reg; // 損失
     };
 
-    // 損失計算用
+    // 腕毎の損失のバッファ
     std::array<Dist, N_MAX_MOVES> d;
 
+    // 腕毎の損失のバッファの初期化
     for (int i = 0; i < candidates; i++) {
-        d[i] = {child[i].mean(), std::sqrt(child[i].mean_var()), 0};
+        d[i] = {
+            child[i].mean(),
+            std::sqrt(child[i].mean_var()),
+            0
+        };
     }
-    for (int t = 0; t < 1600; t++) {
+
+    // TODO: tryCount回ループさせなくても損失は求まりそう
+    // TODO: ループさせるにしてもfor文の構造を工夫すればバッファの配列は不要そう
+    for (int t = 0; t < tryCount; t++) {
+        // 経験最高報酬
         double bestValue = -100;
-        double value[N_MAX_MOVES];
+
+        // 腕毎の評価値のバッファ
+        std::array<double, N_MAX_MOVES> value;
+
+        // 全腕に対して腕を引いてみる
         for (int i = 0; i < candidates; i++) {
-            const Dist& td = d[i];
-            std::normal_distribution<double> nd(td.mean, td.sem);
+            // 正規分布に従う乱数生成器
+            std::normal_distribution<double> nd(d[i].mean, d[i].sem);
+
+            // 腕を引いた結果
             value[i] = nd(dice);
+
+            // 経験最高報酬の更新
             bestValue = std::max(bestValue, value[i]);
         }
+
+        // 全腕の損失を加算
         for (int i = 0; i < candidates; i++) {
             d[i].reg += bestValue - value[i];
         }
     }
+
+    // 損失が大きい場合は十分に最適腕が求まったとして終了させる
     for (int i = 0; i < candidates; i++) {
         if (d[i].reg < regretThreshold) {
             return true;
         }
     }
+
     return false;
 }
 
@@ -116,18 +141,32 @@ void MonteCarloThread(const int threadId, const int numThreads,
     const int myPlayerNum = proot->myPlayerNum;
     auto& dice = ptools->dice;
 
-    int numSimulations[N_MAX_MOVES] = {0};
+    // 腕ごとのプレイアウト回数
+    // TODO: intじゃなくてもいいか？
+    std::array<int, N_MAX_MOVES> numSimulations = {0};
+    
+    // 全腕の総プレイアウト回数
     int numSimulationsSum = 0;
 
-    int numWorlds = 0; // 作成した世界の数
+    // 作成した世界の数
+    int numWorlds = 0;
+
+    // プールした生成済みの世界
     std::array<World, 128> worlds;
 
     // 世界生成のためのクラスを初期化
+
+    // 今の試合のプレイ履歴
     const auto& record = pshared->record.latestGame();
+
+    // 世界生成器(手札推定器)
     RandomDealer estimator(*pfield, myPlayerNum);
 
+    // 現在の盤面情報の複製
     Field pf = *pfield;
-    pf.myPlayerNum = -1; // 客観視点に変更
+
+    // 客観視点に変更
+    pf.myPlayerNum = -1;
     pf.addAttractedPlayer(myPlayerNum);
     pf.setMoveBuffer(ptools->mbuf);
     if (proot->rivalPlayerNum >= 0) {
@@ -150,7 +189,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
     for (int i = 0; !proot->exitFlag; i++) { // 最大で最高回数までプレイアウトを繰り返す
         // 使用する世界の番号
         int world = 0;
-        int action = selectBanditAction(*proot, dice, pruned, &prunedCandidates);          
+        int action = selectBanditAction(*proot, dice, pruned, prunedCandidates);          
 
         if (numSimulations[action] < numWorlds) {
             // まだ全ての世界でこの着手を検討していない
@@ -200,6 +239,14 @@ void MonteCarloThread(const int threadId, const int numThreads,
                     return;
                 }
             }
+        }
+    }
+
+    if (threadId == 1)
+    {
+        std::cout << pf.turnCount() << ",," << std::endl;
+        for (auto i = 0; i < proot->candidates; i++) {
+            std::cout << i << ',' << proot->child[i].mean() << ',' << std::sqrt(proot->child[i].mean_var) << std::endl;
         }
     }
 }
