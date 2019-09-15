@@ -5,6 +5,7 @@
 
 #include <string>
 #include <cfloat>
+#include <cmath>
 #include <algorithm>
 
 // プロフィール
@@ -12,13 +13,32 @@ const std::string MY_NAME = "bmod";
 const std::string MY_POL_NAME = "Sbmod";
 const std::string MY_VERSION = "20190818";
 
+// 教師用ビルドでは1スレッドでルートでの方策の利用はなし
+#ifdef TEACHER
+
 // 戦略設定
 
 // 思考レベル(0~＋∞)
-#define THINKING_LEVEL (9)
+constexpr int THINKING_LEVEL = 40;
 
 // 最大並列スレッド数
-#define N_THREADS (8)
+constexpr int N_THREADS = 1;
+
+#ifdef USE_POLICY_TO_ROOT
+#undef USE_POLICY_TO_ROOT
+#endif
+
+#else
+
+// 戦略設定
+
+// 思考レベル(0~＋∞)
+constexpr int THINKING_LEVEL = 9;
+
+// 最大並列スレッド数
+constexpr int N_THREADS = 8;
+
+#endif
 
 // 末端報酬を階級リセットから何試合前まで計算するか
 constexpr int N_REWARD_CALCULATED_GAMES = 32;
@@ -47,25 +67,6 @@ struct ConfigReader {
 extern ConfigReader configReader;
 
 #define Dice XorShift64
-
-/**************************以下は直接変更しない**************************/
-
-// 教師用ビルドでは1スレッドでルートでの方策の利用はなし
-#ifdef TEACHER
-
-#ifdef N_THREADS
-#undef N_THREADS
-#endif
-#define N_THREADS (1)
-
-#undef THINKING_LEVEL
-#define THINKING_LEVEL (40)
-
-#ifdef USE_POLICY_TO_ROOT
-#undef USE_POLICY_TO_ROOT
-#endif
-
-#endif
 
 // ルール設定
 #ifndef _PLAYERS

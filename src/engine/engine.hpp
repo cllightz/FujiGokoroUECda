@@ -16,11 +16,11 @@
 #include "monteCarlo.hpp"
 
 namespace Settings {
-    const bool changeHeuristicsOnRoot = true;
-    const bool addPolicyOnRoot = true;
-    const bool L2SearchOnRoot = true;
-    const bool mateSearchOnRoot = true;
-    const bool defeatRivalMate = true;
+    constexpr bool changeHeuristicsOnRoot = true;
+    constexpr bool addPolicyOnRoot = true;
+    constexpr bool L2SearchOnRoot = true;
+    constexpr bool mateSearchOnRoot = true;
+    constexpr bool defeatRivalMate = true;
 }
 
 class WisteriaEngine {

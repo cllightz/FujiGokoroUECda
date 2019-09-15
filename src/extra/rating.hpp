@@ -211,7 +211,7 @@ std::vector<double> calcExpectedTotalScore(const std::vector<double>& rates,
         for (int p1 = 0; p1 < players; p1++) {
             if (p0 != p1) {
                 // 数値積分
-                const int precision = 50000;
+                constexpr int precision = 50000;
                 double sum = 0;
                 for (int i = 1; i <= precision; i++) {
                     double x = i / double(precision + 1);

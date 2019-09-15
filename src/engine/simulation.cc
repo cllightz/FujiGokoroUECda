@@ -8,12 +8,12 @@
 using namespace std;
 
 namespace Settings {
-    const bool L2SearchInSimulation = true;
-    const bool MateSearchInSimulation = true;
-    const double simulationTemperatureChange = 1.0;
-    const double simulationTemperaturePlay = 1.1;
-    const double simulationAmplifyCoef = 0.22;
-    const double simulationAmplifyExponent = 2;
+    constexpr bool L2SearchInSimulation = true;
+    constexpr bool MateSearchInSimulation = true;
+    constexpr double simulationTemperatureChange = 1.0;
+    constexpr double simulationTemperaturePlay = 1.1;
+    constexpr double simulationAmplifyCoef = 0.22;
+    constexpr double simulationAmplifyExponent = 2;
 }
 
 MoveInfo simulationMove(Field& field, const SharedData& shared,

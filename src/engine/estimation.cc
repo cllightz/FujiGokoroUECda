@@ -9,9 +9,9 @@ using namespace std;
 // http://qiita.com/ozwk/items/6d62a0717bdc8eac8184
 
 namespace Settings {
-    const double estimationTemperatureChange = 1.0;
-    const double estimationTemperaturePlay = 1.1;
-    const int maxRejection = 800; // 採択棄却法時の棄却回数限度
+    constexpr double estimationTemperatureChange = 1.0;
+    constexpr double estimationTemperaturePlay = 1.1;
+    constexpr int maxRejection = 800; // 採択棄却法時の棄却回数限度
     constexpr int BUCKET_MAX = 32;
 }
 

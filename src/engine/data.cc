@@ -4,10 +4,10 @@
 using namespace std;
 
 namespace Settings {
-    const double rootPlayPriorCoef = 4;
-    const double rootPlayPriorExponent = 0.6;
-    const double rootChangePriorCoef = 4;
-    const double rootChangePriorExponent = 0.6;
+    constexpr double rootPlayPriorCoef = 4;
+    constexpr double rootPlayPriorExponent = 0.6;
+    constexpr double rootChangePriorCoef = 4;
+    constexpr double rootChangePriorExponent = 0.6;
 }
 
 void BaseSharedData::closeMatch() {
@@ -214,7 +214,7 @@ string RootInfo::toString(int num) const {
         oss << " : ";
 
         if (child[i].simulations > 0) {
-            const int K = 100;
+            constexpr int K = 100;
             // 総合評価点を表示
             oss << int(K * rew) << " ( " << int(K * rewZone[0]) << " ~ " << int(K * rewZone[1]) << " ) ";
             oss << "{mc: " << int(K * nrew) << "} ";
