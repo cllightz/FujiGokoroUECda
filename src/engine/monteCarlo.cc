@@ -47,7 +47,7 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
 
             // 枝刈りが発生
             if(worstIndex >= 0){
-                std::cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << std::endl;
+                // std::cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << std::endl;
                 pruned[worstIndex] = true;
                 prunedCandidates++;
             }
@@ -66,6 +66,7 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
                 }
             }
         }
+
         return index;
     }
 }
@@ -225,7 +226,6 @@ void MonteCarloThread(const int threadId, const int numThreads,
         }
 
         proot->feedSimulationResult(action, f, pshared); // 結果をセット(排他制御は関数内で)
-        if (proot->exitFlag) return;
 
         // 終了判定
         if (threadId == 0) {
@@ -244,9 +244,9 @@ void MonteCarloThread(const int threadId, const int numThreads,
 
     if (threadId == 1)
     {
-        std::cout << pf.turnCount() << ",," << std::endl;
+        std::cout << "DEBUG THREAD 1: " << pf.turnCount() << ',' << numSimulationsSum << ",," << std::endl;
         for (auto i = 0; i < proot->candidates; i++) {
-            std::cout << i << ',' << proot->child[i].mean() << ',' << std::sqrt(proot->child[i].mean_var()) << std::endl;
+            std::cout << ",," << i << ',' << proot->child[i].mean() << ',' << std::sqrt(proot->child[i].mean_var()) << std::endl;
         }
     }
 }
