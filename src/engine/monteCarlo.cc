@@ -1,3 +1,4 @@
+#include <bitset>
 #include "../settings.h"
 #include "estimation.hpp"
 #include "simulation.hpp"
@@ -11,7 +12,7 @@ namespace Settings {
     constexpr double valuePerSec = valuePerClock * 3191 * pow(10.0, 6); 
 }
 
-int selectBanditAction(const RootInfo& root, Dice& dice, std::vector<bool>& pruned, int *prunedCandidates) {
+inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MAX_MOVES>& pruned, int *prunedCandidates) {
     // バンディット手法により次に試す行動を選ぶ
     int actions = root.candidates;
     const auto& a = root.child;
@@ -79,7 +80,7 @@ int selectBanditAction(const RootInfo& root, Dice& dice, std::vector<bool>& prun
     }
 }
 
-bool finishCheck(const RootInfo& root, double simuTime, Dice& dice) {
+inline bool finishCheck(const RootInfo& root, double simuTime, Dice& dice) {
     // Regretによる打ち切り判定
 
     const int candidates = root.candidates; // 候補数
@@ -138,7 +139,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
     }
 
     // 枝刈り用
-    std::vector<bool> pruned(proot->candidates, false);
+    std::bitset<N_MAX_MOVES> pruned;
     int prunedCandidates = 0;
 
     uint64_t simuTime = 0ULL; // プレイアウトと雑多な処理にかかった時間
