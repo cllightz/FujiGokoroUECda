@@ -102,7 +102,6 @@ public:
         return diff * 1000000;
     }
     ClockMicS() {}
-    ClockMicS(int m) { start(); }
 private:
     double t_;
 };

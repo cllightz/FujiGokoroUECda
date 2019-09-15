@@ -144,11 +144,14 @@ void MonteCarloThread(const int threadId, const int numThreads,
     uint64_t simuTime = 0ULL; // プレイアウトと雑多な処理にかかった時間
     uint64_t estTime = 0ULL; // 局面推定にかかった時間
 
-    // 諸々の準備が終わったので時間計測開始
-    ClockMicS clock(0);
+    // 諸々の準備が終わったので時間計測開始（スレッド0でのみ計測を行う）
+    ClockMicS clock;
+    if (threadId == 0) {
+        clock.start();
+    }
 
-    while (!proot->exitFlag) { // 最大で最高回数までプレイアウトを繰り返す
-
+    for (int i = 0; !proot->exitFlag; i++) { // 最大で最高回数までプレイアウトを繰り返す
+        // 使用する世界の番号
         int world = 0;
         int action = selectBanditAction(*proot, dice, pruned, &prunedCandidates);          
 
@@ -156,10 +159,16 @@ void MonteCarloThread(const int threadId, const int numThreads,
             // まだ全ての世界でこの着手を検討していない
             world = numSimulations[action];
         } else if (numThreads * numWorlds + threadId < (int)worlds.size()) {
-            // 新しい世界を作成
-            simuTime += clock.restart();
-            worlds[numWorlds] = estimator.create(DealType::REJECTION, record, *pshared, ptools);
-            estTime += clock.restart();
+            // まだ十分な数だけ世界を生成していない場合、新しい世界を作成する
+
+            if (threadId == 0) {
+                simuTime += clock.restart();
+                worlds[numWorlds] = estimator.create(DealType::REJECTION, record, *pshared, ptools);
+                estTime += clock.restart();
+            } else {
+                worlds[numWorlds] = estimator.create(DealType::REJECTION, record, *pshared, ptools);
+            }
+
             world = numWorlds++;
         } else {
             // ランダム選択
@@ -182,16 +191,17 @@ void MonteCarloThread(const int threadId, const int numThreads,
         proot->feedSimulationResult(action, f, pshared); // 結果をセット(排他制御は関数内で)
         if (proot->exitFlag) return;
 
-        simuTime += clock.restart();
-
         // 終了判定
-        if (Settings::fixedSimulationCount < 0
-            && threadId == 0
-            && numSimulationsSum % max(4, 32 / numThreads) == 0
-            && proot->allSimulations > proot->candidates * 4) {
-            if (finishCheck(*proot, double(simuTime) / pow(10, 6), dice)) {
-                proot->exitFlag = 1;
-                return;
+        if (threadId == 0) {
+            simuTime += clock.restart();
+
+            if (Settings::fixedSimulationCount < 0
+                && numSimulationsSum % max(4, 32 / numThreads) == 0
+                && proot->allSimulations > proot->candidates * 4) {
+                if (finishCheck(*proot, double(simuTime) / pow(10, 6), dice)) {
+                    proot->exitFlag = true;
+                    return;
+                }
             }
         }
     }
