@@ -47,7 +47,7 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
 
             // 枝刈りが発生
             if(worstIndex >= 0){
-                std::cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << endl;
+                std::cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << std::endl;
                 pruned[worstIndex] = true;
                 prunedCandidates++;
             }
