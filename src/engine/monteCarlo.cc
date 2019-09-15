@@ -4,16 +4,15 @@
 #include "simulation.hpp"
 #include "monteCarlo.hpp"
 
-using namespace std;
-
 namespace Settings {
-    constexpr double valuePerClock = 5.0 / (THINKING_LEVEL * THINKING_LEVEL) / pow(10.0, 10);
+    constexpr double valuePerClock = 5.0 / (THINKING_LEVEL * THINKING_LEVEL) / std::pow(10.0, 10);
+
     // 時間の価値(1秒あたり),3191は以前のPCのクロック周波数(/microsec)なので意味は無い
-    constexpr double valuePerSec = valuePerClock * 3191 * pow(10.0, 6); 
+    constexpr double valuePerSec = valuePerClock * 3191 * std::pow(10.0, 6); 
 }
 
+// バンディット手法により次に試す行動を選ぶ
 inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MAX_MOVES>& pruned, int *prunedCandidates) {
-    // バンディット手法により次に試す行動を選ぶ
     int actions = root.candidates;
     const auto& a = root.child;
     if (actions == 2) {
@@ -35,29 +34,20 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
             for(int c = 0; c < actions; ++c){
                 double tmpMean = a[c].mean();
                 if(!pruned[c]){
-                    // printf("DEBUG PRUNE: !pruned[c]\n");
                     if(a[c].simulations >= HYPER_PARAM_PRUNE_SIMS_THRE){
-                        // printf("DEBUG PRUNE: %d >= %d\n", a[c].simulations, HYPER_PARAM_PRUNE_SIMS_THRE);
-                        // printf("DEBUG PRUNE: %f\n", tmpMean);
                         if(tmpMean < HYPER_PARAM_PRUNE_MEAN_THRE){
-                            // printf("DEBUG PRUNE: %f < %f\n", tmpMean, HYPER_PARAM_PRUNE_MEAN_THRE);
                             if(tmpMean < worstScore){
-                                // printf("DEBUG PRUNE: %f < %f\n", tmpMean, worstScore);
                                 worstScore = tmpMean;
                                 worstIndex = c;
                             }
                         }
                     }
                 }
-                // if(!pruned[c] && a[c].simulations >= HYPER_PARAM_PRUNE_SIMS_THRE && tmpMean < HYPER_PARAM_PRUNE_MEAN_THRE && tmpMean <>> worstScore){
-                //     worstScore = tmpMean;
-                //     worstIndex = c;
-                // }
             }
 
             // 枝刈りが発生
             if(worstIndex >= 0){
-                cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << endl;
+                std::cout << "DEBUG PRUNE!: " << a[worstIndex].mean() << '\t' << a[worstIndex].simulations << endl;
                 pruned[worstIndex] = true;
                 prunedCandidates++;
             }
@@ -80,20 +70,24 @@ inline int selectBanditAction(const RootInfo& root, Dice& dice, std::bitset<N_MA
     }
 }
 
+// Regretによる打ち切り判定
 inline bool finishCheck(const RootInfo& root, double simuTime, Dice& dice) {
-    // Regretによる打ち切り判定
-
     const int candidates = root.candidates; // 候補数
-    auto& child = root.child;
-    double rewardScale = root.rewardGap;
+    const auto& child = root.child;
+    const double rewardScale = root.rewardGap;
+    const double regretThreshold = 1600.0 * double(2 * simuTime * Settings::valuePerSec) / rewardScale;
 
-    struct Dist { double mean, sem, reg; };
-    double regretThreshold = 1600.0 * double(2 * simuTime * Settings::valuePerSec) / rewardScale;
+    struct Dist {
+        double mean; // 平均
+        double sem; // 標準偏差
+        double reg; // 損失
+    };
 
-    // regret check
-    Dist d[N_MAX_MOVES];
+    // 損失計算用
+    std::array<Dist, N_MAX_MOVES> d;
+
     for (int i = 0; i < candidates; i++) {
-        d[i] = {child[i].mean(), sqrt(child[i].mean_var()), 0};
+        d[i] = {child[i].mean(), std::sqrt(child[i].mean_var()), 0};
     }
     for (int t = 0; t < 1600; t++) {
         double bestValue = -100;
@@ -102,14 +96,16 @@ inline bool finishCheck(const RootInfo& root, double simuTime, Dice& dice) {
             const Dist& td = d[i];
             std::normal_distribution<double> nd(td.mean, td.sem);
             value[i] = nd(dice);
-            bestValue = max(bestValue, value[i]);
+            bestValue = std::max(bestValue, value[i]);
         }
         for (int i = 0; i < candidates; i++) {
             d[i].reg += bestValue - value[i];
         }
     }
     for (int i = 0; i < candidates; i++) {
-        if (d[i].reg < regretThreshold) return true;
+        if (d[i].reg < regretThreshold) {
+            return true;
+        }
     }
     return false;
 }
@@ -197,9 +193,9 @@ void MonteCarloThread(const int threadId, const int numThreads,
             simuTime += clock.restart();
 
             if (Settings::fixedSimulationCount < 0
-                && numSimulationsSum % max(4, 32 / numThreads) == 0
+                && numSimulationsSum % std::max(4, 32 / numThreads) == 0
                 && proot->allSimulations > proot->candidates * 4) {
-                if (finishCheck(*proot, double(simuTime) / pow(10, 6), dice)) {
+                if (finishCheck(*proot, double(simuTime) / std::pow(10, 6), dice)) {
                     proot->exitFlag = true;
                     return;
                 }
