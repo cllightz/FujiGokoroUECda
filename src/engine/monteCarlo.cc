@@ -87,21 +87,21 @@ void MonteCarloThread(const int threadId, const int numThreads,
             if (pruningCounter >= pruningInterval) {
                 pruningCounter = 0;
 
-                // 最も μ^-3σ^ が高い腕を検索
+                // 最も μ^-2σ^ が高い腕を検索
                 double bestScore = -DBL_MAX;
                 for (int c = 0; c < proot->candidates; c++) {
                     if (!pruned[c]) {
-                        double tmpScore = a[c].mean() - 3 * std::sqrt(a[c].mean_var());
+                        double tmpScore = a[c].mean() - 2 * std::sqrt(a[c].mean_var());
                         if (tmpScore < bestScore) {
                             bestScore = tmpScore;
                         }
                     }
                 }
 
-                // μ^+3σ^ < μ^*-3σ^* となる腕を枝刈り
+                // μ^+2σ^ < μ^*-2σ^* となる腕を枝刈り
                 for(int c = 0; c < proot->candidates; c++){
                     if (!pruned[c]) {
-                        double tmpScore = a[c].mean() + 3 * std::sqrt(a[c].mean_var());
+                        double tmpScore = a[c].mean() + 2 * std::sqrt(a[c].mean_var());
                         if (tmpScore < bestScore) {
                             // 枝刈りが発生
                             if (threadId == 1) {
