@@ -175,7 +175,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
             simuTime += clock.restart();
 
             if (Settings::fixedSimulationCount < 0 // プレイアウト回数が固定値で指定されていないこと
-                && numSimulationsSum % std::max(4, 32 / numThreads) == 0 // あまりにも頻繁に終了判定しないように
+                && worldSelectingCounter == 0 // あまりにも頻繁に終了判定しないように
                 && proot->allSimulations > proot->candidates * 4) { // 腕の数の4倍以上プレイアウトしていること
                 auto uSecSimuTime = simuTime / std::pow(10, 6);
                 
