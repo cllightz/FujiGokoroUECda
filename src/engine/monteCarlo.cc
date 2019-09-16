@@ -117,7 +117,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
             while (true) {
                 action++;
                 action %= proot->candidates;
-                if (!prune[action]) {
+                if (!pruned[action]) {
                     break;
                 }
             }
@@ -210,7 +210,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
                     std::array<double, N_MAX_MOVES> value;
 
                     // 全腕に対して腕を引いてみる
-                    for (int i = 0; i < candidates; i++) {
+                    for (int i = 0; i < proot->candidates; i++) {
                         // 正規分布に従う乱数生成器
                         std::normal_distribution<double> nd(d[i].mean, d[i].sem);
 
@@ -222,13 +222,13 @@ void MonteCarloThread(const int threadId, const int numThreads,
                     }
 
                     // 全腕の損失を加算
-                    for (int i = 0; i < candidates; i++) {
+                    for (int i = 0; i < proot->candidates; i++) {
                         d[i].reg += bestValue - value[i];
                     }
                 }
 
                 // 損失が大きい場合は十分に最適腕が求まったとして終了させる
-                for (int i = 0; i < candidates; i++) {
+                for (int i = 0; i < proot->candidates; i++) {
                     if (d[i].reg < regretThreshold) {
                         proot->exitFlag = true;
                         return;
