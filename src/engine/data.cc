@@ -186,6 +186,7 @@ void RootInfo::sort() { // 評価が高い順に候補行動をソート
                 [&](const RootAction& a, const RootAction& b)->bool{
                     // モンテカルロが同点(またはモンテカルロをやっていない)なら方策の点で選ぶ
                     // ただしルートで方策の点を使わないときにはそうではない
+                    // TODO: 本当にmeanが高いだけで評価していいのか考える
                     if (a.mean() > b.mean()) return true;
                     if (a.mean() < b.mean()) return false;
                     if (a.policyProb > b.policyProb) return true;
