@@ -75,6 +75,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
         clock.start();
     }
 
+    // TODO: 時間計測ロジックを排除できれば、もっと綺麗に書ける
     for (int loop = 0; !proot->exitFlag; loop++) { // 最大で最高回数までプレイアウトを繰り返す
         #pragma region 着手の選択
         const auto& a = proot->child;
