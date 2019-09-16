@@ -242,7 +242,7 @@ void MonteCarloThread(const int threadId, const int numThreads,
 
     if (threadId == 1)
     {
-        std::cout << "DEBUG_RANK," << pf.classOf(pf.myPlayerNum) << std::endl;
+        std::cout << "DEBUG_RANK," << pshared->record.getLatestGameNum() << ',' << pf.classOf(pf.myPlayerNum) << std::endl;
 
         for (auto i = 0; i < proot->candidates; i++) {
             std::cout << "DEBUG_THREAD_1," << pshared->record.getLatestGameNum() << ',' << pf.turnCount() << ',' << numSimulationsSum << ',' << i << ',' << proot->child[i].mean() << ',' << std::sqrt(proot->child[i].mean_var()) << std::endl;
